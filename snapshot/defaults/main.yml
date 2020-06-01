@@ -1,2 +1,19 @@
 ---
-# defaults file for snapshot
+cluster_name: "Super Ted"
+rackdc:
+    rack: RAC1
+global:
+    # file locations
+    dse_conf_dir: /etc/dse
+    cassandra_log_dir: /var/log/cassandra
+    cassandra_audit_log_dir: /var/log/cassandra/audit
+    data_file_directories:
+      - "/var/lib/cassandra/data"
+    freespace: 50
+    # users and groups
+    cassandra_user: cassandra
+    cassandra_group: cassandra
+    cassandra_user_id: 50866
+    cassandra_group_id: 9656
+dse:
+    version: 5.0.12
