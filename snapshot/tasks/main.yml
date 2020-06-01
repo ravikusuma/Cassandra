@@ -1,2 +1,25 @@
 ---
 # tasks file for snapshot
+- name: Create Cluster wide  Nightly Snapshot 
+  block:
+    - name: determine free space
+      assert:
+        that: item.size_available * 100 / item.size_total >= global.freespace
+        fail_msg: Not enough space on {{ item.mount }}
+        success_msg: Enough space on {{ item.mount }} for snapshot
+      when: '"cassandra" in item.mount'
+      with_items: "{{ ansible_mounts }}"
+
+    - name: Check for presence of existing snapshot
+      command: "{{ nodetool }} listsnapshots"
+      register: snapshots
+      changed_when: false
+
+    - name: Check if snapshot was already created
+      assert:
+        that: "{{ snapshots.stdout_lines| select('match', '^casbackup_' + ansible_date_time.date) | list | length}} < 10"
+        fail_msg: A snapshot for casbackup_{{ansible_date_time.date}} already exists, remove snapshots manually and try again
+        success_msg: No snapshot found, creating in next step
+
+    - name: create snapshot, if diskspace of cassandra is < {{ global.freespace }}%
+      command: "{{ nodetool }} snapshot -t casbackup_{{ansible_date_time.date}}"
