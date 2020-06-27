@@ -1,0 +1,16 @@
+---
+- hosts: all
+  tasks:
+   - name: Stop service dse, if started
+     become: yes
+     become_user: root
+     service:
+       name: dse
+       state: stopped
+
+   - name: Start service dse
+     become: yes
+     #become_user: root
+     service:
+       name: dse
+       state: started

@@ -1,0 +1,80 @@
+---
+- hosts: all
+  tasks:
+    ##Retrive cassandra files###
+    - name: Fetch cassandra files
+      become: yes
+      become_user: root
+      fetch:
+     #  src: /etc/dse/dse.yaml
+        src: "{{ item }}"
+        dest: /tmp/{{ inventory_hostname }}/
+        flat: yes
+      with_items:
+        - "/etc/dse/cassandra/cassandra.yaml"
+        - "/etc/dse/cassandra/cassandra-env.sh"
+        - "/etc/dse/dse.yaml"
+    ## Retrive cassandra files###
+
+
+
+    ### Register command output####
+
+    - name: Register Output 
+      command: "{{ item }}"
+      with_items:
+        - "java -version" 
+        - "free -m" 
+        - "df -h" 
+        - "/usr/bin/nodetool status" 
+        - "/usr/bin/nodetool info" 
+        - "/usr/bin/nodetool cfstats" 
+        - "/usr/bin/nodetool tablestats" 
+        - "/usr/bin/nodetool compactionstats" 
+        - "/usr/bin/nodetool describecluster" 
+        - "/usr/bin/nodetool gossipinfo" 
+        - "/usr/bin/nodetool proxyhistograms" 
+        - "/usr/bin/nodetool netstats" 
+        - "/usr/bin/nodetool tpstats" 
+        - "/bin/dsetool ring" 
+        - "/bin/dsetool status" 
+      register: output 
+      #    - debug: msg="{{ free.results[0].stdout }}"
+
+    - local_action: copy content={{ output.results[0].stderr }} dest=/tmp/{{ inventory_hostname }}/java_version.txt
+    - local_action: copy content={{ output.results[1].stdout }} dest=/tmp/{{ inventory_hostname }}/free.txt
+    - local_action: copy content={{ output.results[2].stdout }} dest=/tmp/{{ inventory_hostname }}/df.txt
+    - local_action: copy content={{ output.results[3].stdout }} dest=/tmp/{{ inventory_hostname }}/nodetool_status.txt
+    - local_action: copy content={{ output.results[4].stdout }} dest=/tmp/{{ inventory_hostname }}/info.txt
+    - local_action: copy content={{ output.results[5].stdout }} dest=/tmp/{{ inventory_hostname }}/cfstats.txt
+    - local_action: copy content={{ output.results[6].stdout }} dest=/tmp/{{ inventory_hostname }}/tablestats.txt
+    - local_action: copy content={{ output.results[7].stdout }} dest=/tmp/{{ inventory_hostname }}/compactionstats.txt
+    - local_action: copy content={{ output.results[8].stdout }} dest=/tmp/{{ inventory_hostname }}/describecluster.txt
+    - local_action: copy content={{ output.results[9].stdout }} dest=/tmp/{{ inventory_hostname }}/gossipinfo.txt
+    - local_action: copy content={{ output.results[10].stdout }} dest=/tmp/{{ inventory_hostname }}/proxyhistograms.txt
+    - local_action: copy content={{ output.results[11].stdout }} dest=/tmp/{{ inventory_hostname }}/netstats.txt
+    - local_action: copy content={{ output.results[12].stdout }} dest=/tmp/{{ inventory_hostname }}/tpstats.txt
+    - local_action: copy content={{ output.results[13].stdout }} dest=/tmp/{{ inventory_hostname }}/ring.txt
+    - local_action: copy content={{ output.results[14].stdout }} dest=/tmp/{{ inventory_hostname }}/dse_status.txt
+
+    ## Gather system logs ####
+    - name: Find system logs -20d
+      find:
+        paths: /var/log/cassandra
+        patterns: 'system.log*,output.log*,debug.log*'
+        age: "-20d"
+      register: newer_files
+
+    - set_fact:
+        files_to_copy: "{{ newer_files.files | map(attribute='path') | list }}"
+
+    - name: copy logs
+      become: yes
+      fetch:
+        src: "{{ item }}"
+        msg: "{{ item }}"
+        dest: /tmp/{{ inventory_hostname }}/
+        flat: yes
+      loop: "{{ files_to_copy }}"
+     ### Gather system logs ####
+
