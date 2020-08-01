@@ -1,14 +1,22 @@
 ---
-- hosts: all
+- name: Gather Diagnostics
+  hosts: all
+  become: false
+  serial: "{{ howmany|default(1)|int }}"
+  vars:
+    destination_dir: "diagnostics/{{ ansible_facts['default_ipv4']['address'] }}"
+
   tasks:
+
+    - name: "Create tmp storage dir"
+      local_action: file path={{ destination_dir }} state=directory
+      become: false
+
     ##Retrive cassandra files###
     - name: Fetch cassandra files
-      become: yes
-      become_user: root
       fetch:
-     #  src: /etc/dse/dse.yaml
         src: "{{ item }}"
-        dest: /tmp/{{ inventory_hostname }}/
+        dest: "{{ destination_dir }}/"
         flat: yes
       with_items:
         - "/etc/dse/cassandra/cassandra.yaml"
@@ -41,21 +49,21 @@
       register: output 
       #    - debug: msg="{{ free.results[0].stdout }}"
 
-    - local_action: copy content={{ output.results[0].stderr }} dest=/tmp/{{ inventory_hostname }}/java_version.txt
-    - local_action: copy content={{ output.results[1].stdout }} dest=/tmp/{{ inventory_hostname }}/free.txt
-    - local_action: copy content={{ output.results[2].stdout }} dest=/tmp/{{ inventory_hostname }}/df.txt
-    - local_action: copy content={{ output.results[3].stdout }} dest=/tmp/{{ inventory_hostname }}/nodetool_status.txt
-    - local_action: copy content={{ output.results[4].stdout }} dest=/tmp/{{ inventory_hostname }}/info.txt
-    - local_action: copy content={{ output.results[5].stdout }} dest=/tmp/{{ inventory_hostname }}/cfstats.txt
-    - local_action: copy content={{ output.results[6].stdout }} dest=/tmp/{{ inventory_hostname }}/tablestats.txt
-    - local_action: copy content={{ output.results[7].stdout }} dest=/tmp/{{ inventory_hostname }}/compactionstats.txt
-    - local_action: copy content={{ output.results[8].stdout }} dest=/tmp/{{ inventory_hostname }}/describecluster.txt
-    - local_action: copy content={{ output.results[9].stdout }} dest=/tmp/{{ inventory_hostname }}/gossipinfo.txt
-    - local_action: copy content={{ output.results[10].stdout }} dest=/tmp/{{ inventory_hostname }}/proxyhistograms.txt
-    - local_action: copy content={{ output.results[11].stdout }} dest=/tmp/{{ inventory_hostname }}/netstats.txt
-    - local_action: copy content={{ output.results[12].stdout }} dest=/tmp/{{ inventory_hostname }}/tpstats.txt
-    - local_action: copy content={{ output.results[13].stdout }} dest=/tmp/{{ inventory_hostname }}/ring.txt
-    - local_action: copy content={{ output.results[14].stdout }} dest=/tmp/{{ inventory_hostname }}/dse_status.txt
+    - local_action: copy content={{ output.results[0].stderr }} dest={{ destination_dir }}/java_version.txt
+    - local_action: copy content={{ output.results[1].stdout }} dest={{ destination_dir }}/free.txt
+    - local_action: copy content={{ output.results[2].stdout }} dest={{ destination_dir }}/df.txt
+    - local_action: copy content={{ output.results[3].stdout }} dest={{ destination_dir }}/nodetool_status.txt
+    - local_action: copy content={{ output.results[4].stdout }} dest={{ destination_dir }}/info.txt
+    - local_action: copy content={{ output.results[5].stdout }} dest={{ destination_dir }}/cfstats.txt
+    - local_action: copy content={{ output.results[6].stdout }} dest={{ destination_dir }}/tablestats.txt
+    - local_action: copy content={{ output.results[7].stdout }} dest={{ destination_dir }}/compactionstats.txt
+    - local_action: copy content={{ output.results[8].stdout }} dest={{ destination_dir }}/describecluster.txt
+    - local_action: copy content={{ output.results[9].stdout }} dest={{ destination_dir }}/gossipinfo.txt
+    - local_action: copy content={{ output.results[10].stdout }} dest={{ destination_dir }}/proxyhistograms.txt
+    - local_action: copy content={{ output.results[11].stdout }} dest={{ destination_dir }}/netstats.txt
+    - local_action: copy content={{ output.results[12].stdout }} dest={{ destination_dir }}/tpstats.txt
+    - local_action: copy content={{ output.results[13].stdout }} dest={{ destination_dir }}/ring.txt
+    - local_action: copy content={{ output.results[14].stdout }} dest={{ destination_dir }}/dse_status.txt
 
     ## Gather system logs ####
     - name: Find system logs -20d
@@ -69,12 +77,10 @@
         files_to_copy: "{{ newer_files.files | map(attribute='path') | list }}"
 
     - name: copy logs
-      become: yes
       fetch:
         src: "{{ item }}"
         msg: "{{ item }}"
-        dest: /tmp/{{ inventory_hostname }}/
+        dest: "{{ destination_dir }}/"
         flat: yes
       loop: "{{ files_to_copy }}"
      ### Gather system logs ####
-
